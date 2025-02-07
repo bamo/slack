@@ -115,6 +115,7 @@ type RichTextList struct {
 	Elements []RichTextElement       `json:"elements"`
 	Style    RichTextListElementType `json:"style"`
 	Indent   int                     `json:"indent"`
+	Border   int                     `json:"border,omitempty"`
 }
 
 // NewRichTextList returns a new rich text list element.
@@ -481,7 +482,10 @@ func (r RichTextSectionUnknownElement) RichTextSectionElementType() RichTextSect
 }
 
 // RichTextQuote represents rich_text_quote element type.
-type RichTextQuote RichTextSection
+type RichTextQuote struct {
+	RichTextSection
+	Border int `json:"border,omitempty"`
+}
 
 // RichTextElementType returns the type of the Element
 func (s *RichTextQuote) RichTextElementType() RichTextElementType {
@@ -489,17 +493,35 @@ func (s *RichTextQuote) RichTextElementType() RichTextElementType {
 }
 
 func (s *RichTextQuote) UnmarshalJSON(b []byte) error {
-	// reusing the RichTextSection struct, as it's the same as RichTextQuote.
 	var rts RichTextSection
 	if err := json.Unmarshal(b, &rts); err != nil {
 		return err
 	}
-	*s = RichTextQuote(rts)
+	// we define standalone fields because we need to unmarshal the border
+	// field.  We can not directly unmarshal the data into
+	// RichTextQuote because it will cause an infinite loop.  We also
+	// can not define a struct with embedded RichTextSection and Border fields
+	// because the json package will not unmarshal the data into the
+	// standalone fields, once it sees UnmarshalJSON method on the embedded
+	// struct.  The drawback is that we have to process the data twice, and
+	// have to define a standalone struct with the same set of fields as the
+	// original struct, which may become a maintenance burden (i.e. update the
+	// fields in two places, should it ever change).
+	var standalone struct {
+		Border int `json:"border"`
+	}
+	if err := json.Unmarshal(b, &standalone); err != nil {
+		return err
+	}
+	*s = RichTextQuote{
+		RichTextSection: rts,
+		Border:          standalone.Border,
+	}
 	s.Type = RTEQuote
 	return nil
 }
 
-// RichTextPreformatted represents rich_text_quote element type.
+// RichTextPreformatted represents rich_text_preformatted element type.
 type RichTextPreformatted struct {
 	RichTextSection
 	Border int `json:"border"`

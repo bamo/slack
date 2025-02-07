@@ -59,7 +59,8 @@ const (
 						"type": "text",
 						"text": "Quote\n\n"
 					}
-				]
+				],
+				"border": 1
 			},
 			{
 				"type": "rich_text_quote",
@@ -144,8 +145,8 @@ func TestRichTextBlock_UnmarshalJSON(t *testing.T) {
 				Elements: []RichTextElement{
 					&RichTextSection{Type: RTESection, Elements: []RichTextSectionElement{&RichTextSectionTextElement{Type: RTSEText, Text: "Holy moly\n\n"}}},
 					&RichTextPreformatted{RichTextSection: RichTextSection{Type: RTEPreformatted, Elements: []RichTextSectionElement{&RichTextSectionTextElement{Type: RTSEText, Text: "Preformatted\n\n"}}}, Border: 2},
-					&RichTextQuote{Type: RTEQuote, Elements: []RichTextSectionElement{&RichTextSectionTextElement{Type: RTSEText, Text: "Quote\n\n"}}},
-					&RichTextQuote{Type: RTEQuote, Elements: []RichTextSectionElement{&RichTextSectionTextElement{Type: RTSEText, Text: "Another quote"}}},
+					&RichTextQuote{RichTextSection: RichTextSection{Type: RTEQuote, Elements: []RichTextSectionElement{&RichTextSectionTextElement{Type: RTSEText, Text: "Quote\n\n"}}}, Border: 1},
+					&RichTextQuote{RichTextSection: RichTextSection{Type: RTEQuote, Elements: []RichTextSectionElement{&RichTextSectionTextElement{Type: RTSEText, Text: "Another quote"}}}},
 					&RichTextPreformatted{RichTextSection: RichTextSection{Type: RTEPreformatted, Elements: []RichTextSectionElement{&RichTextSectionTextElement{Type: RTSEText, Text: "Another preformatted\n\n"}}}, Border: 42},
 				},
 			},
@@ -346,17 +347,20 @@ func TestRichTextQuote_Marshal(t *testing.T) {
 		}
 	})
 	t.Run("rich_text_quote", func(t *testing.T) {
-		const rawRTS = "{\"type\":\"rich_text_quote\",\"elements\":[{\"type\":\"text\",\"text\":\"Some text\"}]}"
+		const rawRTS = "{\"type\":\"rich_text_quote\",\"elements\":[{\"type\":\"text\",\"text\":\"Some text\"}],\"border\":1}"
 
 		var got RichTextQuote
 		if err := json.Unmarshal([]byte(rawRTS), &got); err != nil {
 			t.Fatal(err)
 		}
 		want := RichTextQuote{
-			Type: RTEQuote,
-			Elements: []RichTextSectionElement{
-				&RichTextSectionTextElement{Type: RTSEText, Text: "Some text"},
+			RichTextSection: RichTextSection{
+				Type: RTEQuote,
+				Elements: []RichTextSectionElement{
+					&RichTextSectionTextElement{Type: RTSEText, Text: "Some text"},
+				},
 			},
+			Border: 1,
 		}
 		if diff := deep.Equal(got, want); diff != nil {
 			t.Errorf("actual value does not match expected one\n%s", diff)
